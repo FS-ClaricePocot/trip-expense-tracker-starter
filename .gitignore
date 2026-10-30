@@ -1,0 +1,19 @@
+# Your OpenRouter key and connection settings, written by scripts/setup-openrouter.mjs. Never commit it.
+.claude/settings.local.json
+
+# Session logs are committed as evidence. Only the hook's error log is machine-specific.
+docs/activities-outputs/session-logs/.hook-errors.log
+
+# Environment files and secrets
+.env
+.env.*
+!.env.example
+
+# Editors and operating systems
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.DS_Store
+Thumbs.db
