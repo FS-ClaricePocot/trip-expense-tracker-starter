@@ -24,7 +24,7 @@ Over four weeks you build it with Claude Code: specs and plans (Week 1), a devel
 
    Then add your mentor as a collaborator: on GitHub, open your repository's **Settings → Collaborators → Add people**.
 
-2. **Connect Claude Code to OpenRouter.** From the repository root, run the setup script and paste your key when asked (the input is hidden):
+2. **Connect Claude Code to OpenRouter.** (Skip this if you are using your own subscription, proceed to Step 4) From the repository root, run the setup script and paste your key when asked (the input is hidden):
 
    ```bash
    node scripts/setup-openrouter.mjs
