@@ -52,7 +52,7 @@ Over four weeks you build it with Claude Code: specs and plans (Week 1), a devel
 | `.claude/hooks/` | The session-log hook and two warnings (context size, task committed) |
 | `.claude/skills/spec-feature/` | The given `/spec-feature` skill and its spec template |
 | `scripts/setup-openrouter.mjs` | Saves your OpenRouter key outside git |
-| `docs/activities-outputs/` | Your session logs (automatic) and screenshots |
+| `docs/activities-outputs/` | Your session logs and `usage.md` (automatic), and screenshots |
 
 You add the rest week by week: `CLAUDE.md` (your stack and test commands), the specs and plans, the skills and agent, the app in `app/`, and the GitHub workflow.
 
@@ -98,6 +98,7 @@ trip-expense-tracker/
 │   ├── design/                      optional: your UI mockups
 │   └── activities-outputs/
 │       ├── session-logs/            automatic
+│       ├── usage.md                 automatic: tokens and model per session
 │       └── screenshots/             what each week's deliverables ask for
 └── scripts/
     └── setup-openrouter.mjs         given
@@ -112,22 +113,24 @@ Name specs and plans by feature ID and a short name in kebab-case, for example `
 3. **Use Haiku only**, for every session, skill and agent.
 4. **One task per session.** Run `/clear` between tasks. Long, open-ended chats are the most common cause of overspending.
 5. **Work through pull requests.** In Weeks 1 and 2, do the week's work on one branch (`week-1`, `week-2`) and open one pull request for it. In Weeks 3 and 4, use one branch and one pull request per feature (for example `F3-people`), so each AI review stays small and cheap. Your mentor reviews each pull request, then you merge.
-6. **Keep evidence.** Commit your session logs and screenshots in `docs/activities-outputs/`.
+6. **Keep evidence.** Commit your session logs, `usage.md` and screenshots in `docs/activities-outputs/`. Always commit `usage.md` together with the session logs, since it summarises them.
 
 ## Session logs and warnings
 
-Every Claude Code session in this project is logged to `docs/activities-outputs/session-logs/` by [.claude/hooks/session-log.mjs](.claude/hooks/session-log.mjs). It runs after every turn and when the session ends. There is nothing to set up beyond the prerequisites.
+Every Claude Code session in this project is logged to `docs/activities-outputs/session-logs/`, and a one-line summary of each session's tokens and model goes to `docs/activities-outputs/usage.md`, by [.claude/hooks/session-log.mjs](.claude/hooks/session-log.mjs). It runs after every turn and when the session ends. There is nothing to set up beyond the prerequisites.
 
 | File | Contents |
 |---|---|
 | `YYYY-MM-DD-<session id>.md` | One per session: start and last activity time, prompt and task counts, models, token usage (main conversation and subagents), each task's tokens, and the skills and agents used |
+| `docs/activities-outputs/usage.md` | One line per session, oldest first: last activity time, total tokens and model, for example `2026-09-10 10:20:32 - 102k (Haiku)`. The total is the log's Session total (input, output and cache tokens, subagents included) |
 | `.hook-errors.log` | Only appears if the hook hit an error. Not committed (see `.gitignore`) |
 
 What to know:
 
 - **Your prompts are never recorded.** Each task is described from Claude's side: its plan steps if it made a plan, otherwise the opening sentence of its reply, otherwise the tools it used (e.g. `Tools: Bash ×2, Edit ×1`). A slash command is shown in front, e.g. `/spec-feature: …`.
 - **Logs are committed** as evidence of each session's models and token use. Commit them with the work they belong to. A session that is still open keeps rewriting its log, so commit it after the session ends.
-- **Files are regenerated; don't edit them.** Each run rebuilds the log from the session transcript.
+- **Commit `usage.md` with the session logs.** It is rebuilt from the logs after every turn, so commit it in the same commit as the logs they changed.
+- **Files are regenerated; don't edit them.** Each run rebuilds the log from the session transcript, and rebuilds `usage.md` from the logs.
 - **Dates use your local time zone.**
 
 Two more hooks show a one-line warning after a reply. The warnings appear only to you and aren't sent to the model, so they cost no tokens:

@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Writes a usage log per Claude Code session to docs/activities-outputs/session-logs/.
+// Writes a usage log per Claude Code session to docs/activities-outputs/session-logs/,
+// and one line per session ("2026-09-10 10:20:32 - 102k (Haiku)") to docs/activities-outputs/usage.md.
 //
 // Runs as a Stop / SessionEnd hook (reads the hook JSON from stdin). It is
 // idempotent: every run re-derives the whole log from the session transcript.
@@ -13,6 +14,7 @@ import path from 'node:path';
 
 const LOG_SUBDIR = ['docs', 'activities-outputs', 'session-logs'];
 const ERROR_FILE = '.hook-errors.log';
+const USAGE_FILE = 'usage.md'; // sits next to the session-logs folder
 const NON_PROMPT_TAGS = /^<(local-command-stdout|local-command-caveat|local-command-stderr|task-notification|side-sessions-event|ci-monitor-event|bash-stdout|bash-stderr)/;
 const PLAN_TOOL = 'mcp__ccd_turn__update_plan';
 const AGENT_TOOLS = new Set(['Agent', 'Task']);
@@ -43,6 +45,7 @@ async function main() {
     const log = buildSessionLog(transcriptPath, projectDir);
     if (log.prompts > 0 && !ignored.has(log.sessionId)) writeSessionLog(logDir, log);
   }
+  writeUsageFile(logDir, path.join(logDir, '..', USAGE_FILE));
 }
 
 // Session IDs (one per line, # comments) that must never be logged.
@@ -385,6 +388,44 @@ function writeSessionLog(logDir, log) {
     if (f !== sessionFileName(log) && f.endsWith(`-${log.sessionId.slice(0, 8)}.md`)) fs.rmSync(path.join(logDir, f));
   }
   writeFileRetry(path.join(logDir, sessionFileName(log)), L.join('\n'));
+}
+
+// usage.md has no session IDs, and this hook runs after every turn, so it is rebuilt from the
+// session logs each time: one line per session, and an open session's line updates in place.
+function writeUsageFile(logDir, usageFile) {
+  const lines = [];
+  for (const f of fs.readdirSync(logDir).filter((n) => n.endsWith('.md'))) {
+    const line = usageLine(fs.readFileSync(path.join(logDir, f), 'utf8'));
+    if (line) lines.push(line);
+    else logError(`usage.md: no timestamp or session total found in ${f}`);
+  }
+  writeFileRetry(usageFile, lines.sort().map((l) => `${l}\n`).join(''));
+}
+
+// Reads the "Last activity" time, the Session total (the last column of its row) and the models from a session log.
+function usageLine(markdown) {
+  const when = markdown.match(/\*\*Last activity:\*\* (\d+)\/(\d+)\/(\d+), (\d+):(\d+):(\d+)/);
+  const tokens = markdown.match(/^\| \*\*Session total\*\* \|.*\| ([\d,]+) \|\s*$/m);
+  if (!when || !tokens) return null;
+  const [month, day, year, hour, minute, second] = when.slice(1).map(Number);
+  const p = (n) => String(n).padStart(2, '0');
+  // hour % 24: en-US with hour12:false renders midnight as 24:00:00.
+  const stamp = `${year}-${p(month)}-${p(day)} ${p(hour % 24)}:${p(minute)}:${p(second)}`;
+  return `${stamp} - ${Math.round(Number(tokens[1].replace(/,/g, '')) / 1000)}k${modelSuffix(markdown)}`;
+}
+
+// " (Haiku)" or " (Haiku, Sonnet)" from the log's Models line; empty if the session used no model.
+function modelSuffix(markdown) {
+  const ids = markdown.match(/^- \*\*Models:\*\* (.*)$/m)?.[1].split(', ').filter((id) => id !== '—') || [];
+  const names = [...new Set(ids.map(modelName))];
+  return names.length ? ` (${names.join(', ')})` : '';
+}
+
+// Claude model family, whichever ID style is used (claude-haiku-5-5, anthropic/claude-haiku-5.5).
+// Any other model keeps its full ID.
+function modelName(id) {
+  const family = id.match(/\b(haiku|sonnet|opus|fable)\b/i)?.[1];
+  return family ? family[0].toUpperCase() + family.slice(1).toLowerCase() : id;
 }
 
 // Never fail the hook; errors go to .hook-errors.log in the log dir (stderr too with SESSION_LOG_DEBUG=1).
