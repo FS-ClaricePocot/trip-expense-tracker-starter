@@ -121,8 +121,8 @@ Every Claude Code session in this project is logged to `docs/activities-outputs/
 
 | File | Contents |
 |---|---|
-| `YYYY-MM-DD-<session id>.md` | One per session: start and last activity time, prompt and task counts, models, token usage (main conversation and subagents), each task's tokens, and the skills and agents used |
-| `docs/activities-outputs/usage.md` | One line per session, oldest first: last activity time, total tokens and model, for example `2026-09-10 10:20:32 - 102k (Haiku)`. The total is the log's Session total (input, output and cache tokens, subagents included) |
+| `YYYY-MM-DD-<session id>.md` | One per session: start and last activity time, prompt and task counts, models, token usage and estimated cost (main conversation and subagents), the model segments, each task's tokens and cost, and the skills and agents used |
+| `docs/activities-outputs/usage.md` | One line per model run, oldest first: last activity time, total tokens, model and estimated cost, for example `2026-11-10 17:50:20 - 3104k (Haiku) \| $0.20`. A run is the stretch of a session on one model: its count and cost restart when the model changes. Costs use the Claude API list prices in the hook script, and show `$n/a` when a model has no price |
 | `.hook-errors.log` | Only appears if the hook hit an error. Not committed (see `.gitignore`) |
 
 What to know:
